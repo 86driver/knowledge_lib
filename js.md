@@ -211,4 +211,304 @@
   **/
   ```
 
+
+
+
+## 执行上下文栈
+
+- 执行上下文
+
+  ​	js的es5之前的可执行上下文有 全局代码，函数，eval代码，多个执行上下文组成执行上下文栈
+
+  * 变量对象(vo)
+
+    vars,functions,arguments
+
+    变量对象是与执行上下文相关的数据作用域，存储了在上下文中定义的变量和函数声明，
+
+    变量对象里面主要存储了 变量，函数声明，函数形参(argument)
+
+  * this
+
+    context object
+
+  * ScopeChain(作用域链)
+
+    variable object + all parents scopes
+
+    当查找变量的时候，会先从当前上下文的变量对象中查找，如果没有找到，就会从父级(词法层面上的父级)**执行上下文**的**变量对象**中查找，一直找到全局上下文的变量对象，也就是全局对象。这样由多个执行上下文的变量对象构成的链表就叫做作用域链
+
+  [诠释了作用域链，变量对象，执行上下文的关系](https://github.com/kuitos/kuitos.github.io/issues/18)
+
+
+
+## 闭包
+
+- 定义
+
+  闭包是指那些能够访问**自由变量**的函数
+
+  自由变量：自由变量是指在函数中使用的，但既不是函数参数也不是函数的局部变量的变量
+
+  Eg:
+
+  ```javascript
+  var a = 1;
   
+  function foo() {
+      console.log(a);
+  }
+  
+  foo();
+  
+  /**
+  foo 函数可以访问变量 a，但是 a 既不是 foo 函数的局部变量，也不是 foo 函数的参数，所以 a 就是自由变量
+  **/
+  ```
+
+  
+
+- ECMAScript中，闭包指的是:
+
+  [文章链接](https://github.com/mqyqingfeng/Blog/issues/9)
+
+  1. 从理论角度：所有的函数。因为它们都在创建的时候就将上层上下文的数据保存起来了。哪怕是简单的全局变量也是如此，因为函数中访问全局变量就相当于是在访问自由变量，这个时候使用最外层的作用域
+  2. **从实践角度：以下函数才算是闭包：**
+     		1. 即使创建它的上下文已经销毁，它仍然存在（比如，内部函数从父函数中返回）
+       		2. 在代码中引用了自由变量
+
+  Eg:
+
+  ```js
+  var scope = "global scope";
+  function checkscope(){
+      var scope = "local scope";
+      function f(){
+          return scope;
+      }
+      return f;
+  }
+  
+  var foo = checkscope();
+  foo();
+  
+  
+  /**************************************/
+  // 必刷题
+  
+  var data = [];
+  
+  for (var i = 0; i < 3; i++) {
+    data[i] = function () {
+      console.log(i);
+    };
+  }
+  
+  data[0]();
+  data[1]();
+  data[2]()
+  
+  ```
+
+  
+
+## 变量提升
+
+- 主要就是词法分析，其实就是变量对象(vo)保存的值， 执行代码的时候再去更新这些值，
+
+  在词法分析时，其实可以看成是变量对象的创建过程；变量对象会包括：
+
+  1. 函数的所有形参 (如果是函数上下文)
+     - 由名称和对应值组成的一个变量对象的属性被创建
+     - 没有实参，属性值设为 undefined
+  2. 函数声明
+     - 由名称和对应值（函数对象(function-object)）组成一个变量对象的属性被创建
+     - 如果变量对象已经存在相同名称的属性，则完全替换这个属性
+  3. 变量声明
+     - 由名称和对应值（undefined）组成一个变量对象的属性被创建；
+     - 如果变量名称跟已经声明的形式参数或函数相同，则变量声明不会干扰已经存在的这类属
+
+  
+
+  - 变量对象的创建过程
+    1. 全局上下文的变量对象初始化是全局对象
+    2. 函数上下文的变量对象初始化只包括 Arguments 对象
+    3. 在进入执行上下文时会给变量对象添加形参、函数声明、变量声明等初始的属性值
+    4. 在代码执行阶段，会再次修改变量对象的属性值
+
+  
+
+  Eg:
+
+  ```js
+  function foo(a) {
+    var b = 2;
+    function c() {}
+    var d = function() {};
+  
+    b = 3;
+  
+  }
+  
+  foo(1);
+  
+  
+  /**
+  在进入执行上下文后，这时候的 AO 是
+  AO = {
+      arguments: {
+          0: 1,
+          length: 1
+      },
+      a: 1,
+      b: undefined,
+      c: reference to function c(){},
+      d: undefined
+  }
+  
+  
+  代码执行
+  在代码执行阶段，会顺序执行代码，根据代码，修改变量对象的值
+  
+  还是上面的例子，当代码执行完后，这时候的 AO 是
+  
+  AO = {
+      arguments: {
+          0: 1,
+          length: 1
+      },
+      a: 1,
+      b: 3,
+      c: reference to function c(){},
+      d: reference to FunctionExpression "d"
+  }
+  **/
+  ```
+
+  
+
+  
+
+## [this的指向](https://github.com/mqyqingfeng/Blog/issues/7)
+
+- 如何判断this的指向？
+
+  1. 计算 MemberExpression 的结果赋值给 ref
+
+     什么是MemberExpression
+
+     - PrimaryExpression // 原始表达式 可以参见《JavaScript权威指南第四章》
+     - FunctionExpression // 函数定义表达式
+     - MemberExpression [ Expression ] // 属性访问表达式
+     - MemberExpression . IdentifierName // 属性访问表达式
+     - new MemberExpression Arguments // 对象创建表达式
+
+     Eg:
+
+     ```js
+     function foo() {
+         console.log(this)
+     }
+     
+     foo(); // MemberExpression 是 foo
+     
+     function foo() {
+         return function() {
+             console.log(this)
+         }
+     }
+     
+     foo()(); // MemberExpression 是 foo()
+     
+     var foo = {
+         bar: function () {
+             return this;
+         }
+     }
+     
+     foo.bar(); // MemberExpression 是 foo.bar
+     ```
+
+     **所以简单理解 MemberExpression 其实就是()左边的部分。**
+
+     
+
+  2. 判断 ref 是不是一个 Reference 类型
+
+     1. 如果 ref 是 Reference，并且 IsPropertyReference(ref) 是 true, 那么 this 的值为 GetBase(ref)
+
+        Reference构成：
+
+        - base value
+
+          它的值只可能是 undefined, an Object, a Boolean, a String, 
+
+          a Number, or an environment record 其中的一种
+
+        - referenced name
+
+        - strict reference
+
+        Eg:
+
+        ```js
+        var foo = 1;
+        
+        // 对应的Reference是：
+        var fooReference = {
+            base: EnvironmentRecord,
+            name: 'foo',
+            strict: false
+        };
+        ```
+
+        
+
+        IsPropertyReference(ref):如果 base value 是一个对象，就返回true,否则返回false
+
+     2. 如果 ref 是 Reference，并且 base value 值是 Environment Record(可以看成是不是在执行上下文是不是全局上下文), 那么this的值为 ImplicitThisValue(ref)
+
+        ImplicitThisValue(ref)返回的值永远是undefined， 非严格模式下 undefined下的tihs永远指向window
+
+        GetBase(): 返回 reference 的 base value
+
+     3. 如果 ref 不是 Reference，那么 this 的值为 undefined
+
+  
+
+- 判断 ref 是不是一个 Reference 类型
+
+  关键就在于看规范是如何处理各种 MemberExpression，返回的结果是不是一个Reference类型
+
+  Eg:
+
+  ```js
+  var value = 1;
+  
+  var foo = {
+    value: 2,
+    bar: function () {
+      return this.value;
+    }
+  }
+  
+  //示例1
+  console.log(foo.bar());
+  //示例2
+  console.log((foo.bar)());
+  //示例3
+  console.log((foo.bar = foo.bar)());
+  //示例4
+  console.log((false || foo.bar)());
+  //示例5
+  console.log((foo.bar, foo.bar)());
+  ```
+
+  
+
+
+
+## 运算符优先级
+
+
+
