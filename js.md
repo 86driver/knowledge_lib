@@ -504,11 +504,107 @@
   console.log((foo.bar, foo.bar)());
   ```
 
+
+
+## [JavaScript：立即执行函数表达式(IIFE)](https://segmentfault.com/a/1190000003985390)
+
+- 定义：**IIFE**（ 立即调用函数表达式）是一个在定义时就会立即执行的javascript函数
+
+  ```js
+  (function () {
+      statements
+  })();
+  ```
+
+
+- 目的：
+  1. 不必为函数命名，避免了污染全局变量
+  2. IIFE内部形成了单独的作用域，可以封住一些外部无法读取的私有变量
+
+
+
+## [instanceof和typeof实现原理](https://juejin.cn/post/6844903613584654344)
+
+- typeof只能准确判断基础数据类型，所有引用数据类型结构都为 "object",
+
+  要想判断引用数据类型，可以用instanceof这个操作符来判断
+
   
 
+- typeof
 
+  - 为什么typeof null === "object"
+
+    js在底层存储变量的时候，会在机器码的低位1-3位存储其类型信息
+
+    - 000：对象
+    - 010：浮点数
+    - 100：字符串
+    - 110：布尔
+    - 1：整数
+
+    需要注意的是：
+
+    - null：所有机器码都为0
+
+      这就是为什么 typeof null === "object" 结果为 true
+
+    - `undefined`：用 −2^30 整数来表示
+
+- instanceof
+
+  之前我们提到了 `instanceof` 来判断对象的具体类型，其实 `instanceof` 主要的作用就是判断一个实例是否属于某种类型
+
+  Eg:
+
+  ```js
+  let person = function () {
+  }
+  let nicole = new person()
+  nicole instanceof person // true
+  ```
+
+  当然，`instanceof` 也可以判断一个实例是否是其父类型或者祖先类型的实例
+
+  ```js
+  let person = function () {
+  }
+  let programmer = function () {
+  }
+  programmer.prototype = new person()
+  let nicole = new programmer()
+  nicole instanceof person // true
+  nicole instanceof programmer // true
+  ```
+
+  instanceof原理
+
+  ```js
+  // 示例代码
+  function new_instance_of(leftVaule, rightVaule) { 
+      let rightProto = rightVaule.prototype; // 取右表达式的 prototype 值
+      leftVaule = leftVaule.__proto__; // 取左表达式的__proto__值
+      while (true) {
+      	if (leftVaule === null) {
+              return false;	
+          }
+          if (leftVaule === rightProto) {
+              return true;	
+          } 
+          leftVaule = leftVaule.__proto__ 
+      }
+  }
+  
+  /**
+  其实 instanceof 主要的实现原理就是只要右边变量的 prototype 在左边变量的原型链上即可。因此，instanceof 在查找的过程中会遍历左边变量的原型链，直到找到右边变量的 prototype，如果查找失败，则会返回 false，告诉我们左边变量并非是右边变量的实例。
+  /**
+  ```
+
+  
 
 ## 运算符优先级
 
 
+
+## javascript 错误类型
 
