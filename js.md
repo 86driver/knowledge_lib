@@ -600,6 +600,254 @@
   /**
   ```
 
+- 图解
+
+  ​	![原型链图解](https://user-gold-cdn.xitu.io/2018/5/28/163a55d5d35b866d?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+
+- Object.prototype.toString可以准确判断具体类型
+
+
+
+
+## call & apply
+
+### call
+
+- call函数特点
+  1. 立即执行，例如 `fn.call(null)`  这里的fn会立即执行
+  2. 第一个参数是需要绑定this指向的对象， 如果不传或者没有指定绑定对象 this 将指向window
+  3. 第二个到最后的参数是传入的值
+  4. call函数有返回值
+
+- 模拟实现思路：
+
+  1. 将函数设为对象的属性
+
+  2. 执行该函数
+
+  3. 删除该函数
+
+​	
+
+最简单的实现:
+
+```js
+// 第一版
+Function.prototype.call2 = function(context) {
+    // 首先要获取调用call的函数，用this可以获取
+  	// 注意， 这里的this指向bar函数
+    context.fn = this;
+    context.fn();
+    delete context.fn;
+}
+
+// 测试一下
+var foo = {
+    value: 1
+};
+
+function bar() {
+    console.log(this.value);
+}
+
+bar.call2(foo); // 1
+```
+
+
+
+考虑携带参数和返回值之后的模拟实现：
+
+```js
+Function.prototype.call2 = function(context) {
+  	context = context || window
+  	context.fn = this
+  	var args = []
+  	for(var i=1, i<arguments.length; i++) {
+      args.push('arguments['+i+']')
+    }
+  	/**
+  		下面的args会自动调用Array.prototype.toString()转换成字符串
+  		因为eval接收的是一个字符串， js接收到数组时会将数组转换成字符串，参照js类型转换规则
+  	**/
+  	var result = eval('context.fn('+args+')') 
+    delete context.fn
+  	return result
+}
+
+
+
+/***************************/
+// 测试一下
+var value = 2;
+
+var obj = {
+    value: 1
+}
+
+function bar(name, age) {
+    console.log(this.value);
+    return {
+        value: this.value,
+        name: name,
+        age: age
+    }
+}
+
+bar.call2(null); // 2
+
+console.log(bar.call2(obj, 'kevin', 18));
+// 1
+// Object {
+//    value: 1,
+//    name: 'kevin',
+//    age: 18
+// }
+```
+
+
+
+	### apply
+
+- apply与call类似，
+
+  模拟实现代码：
+
+  ````js
+  Function.prototype.apply = function (context, arr) {
+      var context = Object(context) || window;
+      context.fn = this;
+  
+      var result;
+      if (!arr) {
+          result = context.fn();
+      }
+      else {
+          var args = [];
+          for (var i = 0, len = arr.length; i < len; i++) {
+              args.push('arr[' + i + ']');
+          }
+          result = eval('context.fn(' + args + ')')
+      }
+  
+      delete context.fn
+      return result;
+  }
+  ````
+
+  
+
+## bind的实现
+
+- [规范链接](https://262.ecma-international.org/5.1/#sec-15.3.4.5)
+
+- bind() 方法会创建一个新函数。当这个新函数被调用时，bind() 的第一个参数将作为它运行时的 this，之后的一序列参数将会在传递的实参前传入作为它的参数。(来自于 MDN )
+- bind函数的两个特点
+  1. 返回一个函数
+  
+  2. 传参与call类似，是若干个参数
+  
+  3. 与call和apply不同的是， bind函数不会立即执行(返回一个函数，主动调用执行), 因为bind函数不会立即执行， 所以可以多次传参数
+  
+     Eg:
+  
+     ```js
+     var foo = {
+         value: 1
+     };
+     
+     function bar(name, age) {
+         console.log(this.value);
+         console.log(name);
+         console.log(age);
+     
+     }
+     
+     var bindFoo = bar.bind(foo, 'daisy');
+     bindFoo('18');
+     // 1
+     // daisy
+     // 18
+     ```
+  
+     
+
+Eg:
+
+```js
+var foo = {
+    value: 1
+};
+
+function bar() {
+    console.log(this.value);
+}
+
+// 返回了一个函数
+var bindFoo = bar.bind(foo); 
+
+bindFoo(); // 1
+```
+
+
+
+模拟实现代码：
+
+```js
+Function.prototype.bind2 = function (context) {
+
+    if (typeof this !== "function") {
+      throw new Error("Function.prototype.bind - what is trying to be bound is not callable");
+    }
+
+    var self = this;
+    var args = Array.prototype.slice.call(arguments, 1);
+
+    var fNOP = function () {};
+
+    var fBound = function () {
+        var bindArgs = Array.prototype.slice.call(arguments);
+        return self.apply(this instanceof fNOP ? this : context, args.concat(bindArgs));
+    }
+
+    fNOP.prototype = this.prototype;
+    fBound.prototype = new fNOP();
+    return fBound;
+}
+```
+
+ 
+
+
+
+## [javascript之函数柯里化](https://github.com/mqyqingfeng/Blog/issues/42)
+
+- 定义
+
+  在数学和计算机科学中，柯里化是一种将使用多个参数的一个函数转换成一系列使用一个参数的函数的技术
+
+- 这里理解感觉好一点
+
+  ​	用闭包把参数保存起来，当参数的数量足够执行函数了，就开始执行函数
+
+- 用途
+
+  - 参数复用（降低通用型，提高适用性？？啥意思）
+
+    ​	降低通用性，提高适用性：
+
+    ​	假如一个函数是 fn()()(), 到第三个()才会去执行， 那我去定义两个函数: fn1 = fn(), 和fn2 = fn()()
+
+    ​	这样fn1就保持了传了一个参数的状态， fn2保持了传了两个参数的状态，这样就达到了降低通用型，同时提高适用性的目的
+
+- curry函数简易版实现
+
+  ```js
+  const curry = (fn, ...curryArgs) => (...args) =>
+    args.length >= fn.length
+      ? fn(...curryArgs, ...args)
+      : curry(fn, ...curryArgs, ...args);
+  ```
+
   
 
 ## 运算符优先级
