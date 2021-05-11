@@ -608,8 +608,7 @@
 
 
 
-
-## call & apply
+## call & apply & bind
 
 ### call
 
@@ -706,7 +705,7 @@ console.log(bar.call2(obj, 'kevin', 18));
 
 
 
-	### apply
+### apply
 
 - apply与call类似，
 
@@ -736,7 +735,7 @@ console.log(bar.call2(obj, 'kevin', 18));
 
   
 
-## bind的实现
+### bind的实现
 
 - [规范链接](https://262.ecma-international.org/5.1/#sec-15.3.4.5)
 
@@ -960,11 +959,57 @@ Function.prototype.bind2 = function (context) {
 
 
 
+## [javascript 浮点数精度](https://github.com/mqyqingfeng/Blog/issues/155)
+
+- 经典问题
+
+  ```js
+  0.1+0.2=?
+  ```
+
+- ECMAScript 中 Number类型标准：IEEE754
+
+  ​	在 IEEE754 中，规定了四种表示浮点数值的方式：单精确度（32位）、双精确度（64位）、延伸单精确度、与延伸双精确度。像 	ECMAScript 采用的就是双精确度，也就是说，会用 64 位字节来储存一个浮点数。
+
+  
+
+- 为什么IEEE754会有精度丢失这一问题？
+
+- 在javascript怎么解决精度丢失这一问题？
+
+  升幂然后降幂？
+
+## new 操作符
+
+- 模拟实现
+
+```js
+function objectFactory() {
+
+    var obj = new Object(),
+
+    Constructor = [].shift.call(arguments);
+
+    obj.__proto__ = Constructor.prototype;
+
+    var ret = Constructor.apply(obj, arguments);
+
+    return typeof ret === 'object' ? ret : obj;
+
+};
+```
+
+
+
+
+
+
+
 ## 运算符优先级
 
 
 
 
 
-## javascript 错误类型
+## javascript 错误类型 & 怎么捕获错误
 
