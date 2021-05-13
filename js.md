@@ -981,27 +981,116 @@ Function.prototype.bind2 = function (context) {
 
 ## new 操作符
 
+- New 关键字会做如下操作
+  1. 创建一个空的简单JavaScript对象（即**{}**）；
+  2. 链接该对象（设置该对象的**constructor**）到另一个对象 ；
+  3. 将步骤1新创建的对象作为**this**的上下文 ；
+  4. 如果该函数没有返回对象，则返回**this**。
+
 - 模拟实现
 
 ```js
 function objectFactory() {
 
-    var obj = new Object(),
+    var constructor = [].shift.call(arguments);
+  
+  	var obj = Object.create(constructor.prototype);
 
-    Constructor = [].shift.call(arguments);
+    obj.__proto__ = constructor.prototype;
 
-    obj.__proto__ = Constructor.prototype;
+    var ret = constructor.apply(obj, arguments);
 
-    var ret = Constructor.apply(obj, arguments);
-
-    return typeof ret === 'object' ? ret : obj;
+    return ret instanceof Object  ? ret : obj;
 
 };
 ```
 
 
 
+## [事件循环机制(eventloop)](https://zhuanlan.zhihu.com/p/33058983)
 
+### 浏览器环境
+
+#### 事件队列（Task Queue）
+
+- js引擎遇到一个异步事件后并不会一直等待其返回结果，而是会将这个事件挂起，继续执行执行栈中的其他任务。当一个异步事件返回结果后，js会将这个事件加入与当前执行栈不同的另一个队列，我们称之为事件队列
+
+#### 事件循环（接上面事件队列）
+
+- 被放入事件队列不会立刻执行其回调，而是等待当前执行栈中的所有任务都执行完毕， 主线程处于闲置状态时，主线程会去查找事件队列是否有任务。如果有，那么主线程会从中取出排在第一位的事件，并把这个事件对应的回调放入执行栈中，然后执行其中的同步代码...，如此反复，这样就形成了一个无限的循环。这就是这个过程被称为“事件循环（Event Loop）”的原因。
+
+#### macro task（宏任务） 与 micro task（微任务）
+
+以上的事件循环过程是一个宏观的表述，实际上因为异步任务之间并不相同，因此他们的执行优先级也有区别。不同的异步任务被分为两类：宏任务（macro task）和  微任务（micro task）。
+
+我们只需记住**当当前执行栈执行完毕时会立刻先处理所有微任务队列中的事件，然后再去宏任务队列中取出一个事件。同一次事件循环中，微任务永远在宏任务之前执行**。
+
+示例：
+
+```js
+setTimeout(function () {
+    console.log(1);
+});
+
+new Promise(function(resolve,reject){
+    console.log(2)
+    resolve(3)
+}).then(function(val){
+    console.log(val);
+})
+
+/**
+	结果为：
+	2
+  3
+  1
+**/
+```
+
+
+
+- 以下属于宏任务
+
+  1. setTimeout()
+  2. setInterval()
+
+- 以下属于微任务
+
+  1. new Promise()
+  2. new MutaionObserver()
+
+  
+
+### node环境
+
+1. 与浏览器环境有什么不同？
+
+在node中，事件循环表现出的状态与浏览器中大致相同。不同的是node中有一套自己的模型。node中事件循环的实现是依靠的libuv引擎。我们知道node选择chrome v8引擎作为js解释器，v8引擎将js代码分析后去调用对应的node api，而这些api最后则由libuv引擎驱动，执行对应的任务，并把不同的事件放在不同的队列中等待主线程执行。 因此实际上node中的事件循环存在于libuv引擎中。
+
+2. 事件循环模型
+
+> ```text
+>  ┌───────────────────────┐
+> ┌─>│        timers         │
+> │  └──────────┬────────────┘
+> │  ┌──────────┴────────────┐
+> │  │     I/O callbacks     │
+> │  └──────────┬────────────┘
+> │  ┌──────────┴────────────┐
+> │  │     idle, prepare     │
+> │  └──────────┬────────────┘      ┌───────────────┐
+> │  ┌──────────┴────────────┐      │   incoming:   │
+> │  │         poll          │<──connections───     │
+> │  └──────────┬────────────┘      │   data, etc.  │
+> │  ┌──────────┴────────────┐      └───────────────┘
+> │  │        check          │
+> │  └──────────┬────────────┘
+> │  ┌──────────┴────────────┐
+> └──┤    close callbacks    │
+>    └───────────────────────┘
+> ```
+
+​		*注：模型中的每一个方块代表事件循环的一个阶段*
 
 
 
