@@ -1102,7 +1102,68 @@ new Promise(function(resolve,reject){
 - [Promise/A+规范](https://zhuanlan.zhihu.com/p/143204897)
 
 - Promise 必须为以下三种状态之一：等待态（Pending）、执行态（Fulfilled）和拒绝态（Rejected）。一旦Promise 被 resolve 或 reject，不能再迁移至其他任何状态（即状态 immutable）。
+
 - **真正的链式Promise是指在当前promise达到fulfilled状态后，即开始进行下一个promise.**
+
+- promise.then里面是同步执行，如果需要顺序异步执行，可以在外面定义一个promise 方法，return这个方法
+
+  示例：
+
+  ```js
+  function test1(id) {
+    return new Promise(((resolve) => {
+      setTimeout(() => {
+        resolve({ test: 1 })
+      }, 2000)
+    }))
+  }
+  
+  
+  new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({ test: 0 })
+    },1000)
+  }).then((data) => {
+    setTimeout(() => {
+      console.log('result0', data)
+      return test1()
+    })
+  }).then((data) => {
+       console.log('result1', data) 
+  })
+  
+  // result1 undefined
+  // result0 { test: 0 }
+  
+  
+  /****************************************************************************************/
+  
+  
+  function test1(id) {
+    return new Promise(((resolve) => {
+      setTimeout(() => {
+        resolve({ test: 1 })
+      }, 2000)
+    }))
+  }
+  
+  
+  new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({ test: 0 })
+    },1000)
+  }).then((data) => {
+    console.log('result0', data)
+    return test1()
+  }).then((data) => {
+       console.log('result1', data) 
+  })
+  
+  // result0 { test: 0 }
+  // result1 { test: 1 }
+  ```
+
+  
 
 
 
