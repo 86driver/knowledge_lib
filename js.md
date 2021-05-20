@@ -1171,6 +1171,21 @@ new Promise(function(resolve,reject){
 
 
 
+## Generator原理
+
+- 特性
+  - 非立即执行
+  - run-pause-run模式，即生成器函数可以在函数运行中被暂停一次或多次，并且在后面再恢复执行，在暂停期间允许其他代码语句被执行
+  - 普通函数使用 return 返回值，生成器函数使用 yield 返回值
+
+
+
+
+
+## async/await 原理
+
+
+
 
 
 ## 运算符优先级
