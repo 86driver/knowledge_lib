@@ -324,3 +324,34 @@ window.localStorage.setItem('test', '123');
 
 ![](https://user-gold-cdn.xitu.io/2018/4/19/162db635ed5f6d26?imageView2/0/w/1280/h/960/webp/ignore-error/1)
 
+
+
+
+
+
+
+## [浏览器渲染](https://xie.infoq.cn/article/5d36d123bfd1c56688e125ad3)
+
+
+
+## [浏览器工作原理](https://www.html5rocks.com/zh/tutorials/internals/howbrowserswork/)
+
+
+
+## [内存泄漏](https://segmentfault.com/a/1190000020231307)
+
+
+
+- **ES6 Set Map WeakSet** 这个是重点，需要着重看一下
+
+- 引用计数垃圾收集
+
+  这是最初级的垃圾收集算法。此算法把“对象是否不再需要”简化定义为“对象有没有其他对象引用到它”。如果没有引用指向该对象（零引用），对象将被垃圾回收机制回收。
+
+  ES6 把**引用**有区分为**强引用**(Set, Map)和**弱引用**(WeakSet, WeakMap)，这个目前只有再 Set 和 Map 中才有， **强引用**才会有**引用计数**叠加，只有引用计数为 0 的对象的内存才会被回收，所以一般需要手动回收内存（手动回收的前提在于**标记清除法**还没执行，还处于当前执行环境）。
+
+  而**弱引用**没有触发**引用计数**叠加，只要引用计数为 0，弱引用就会自动消失，无需手动回收内存。
+
+  
+
+- 标记清除法
