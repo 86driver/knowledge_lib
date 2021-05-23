@@ -1180,6 +1180,12 @@ new Promise(function(resolve,reject){
 
 
 
+## iterator 迭代器
+
+
+
+
+
 
 
 ## async/await 原理
