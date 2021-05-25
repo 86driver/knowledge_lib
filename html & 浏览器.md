@@ -240,13 +240,15 @@ window.localStorage.setItem('test', '123');
   转换的三个阶段：
 
   	1. **通过分词器将字节流转换为 Token**
-   	2. **至于后续的第二个和第三个阶段是同步进行的，需要将 Token 解析为 DOM 节点，并将 DOM 节点添加到 DOM 树中**
+  	2. **至于后续的第二个和第三个阶段是同步进行的，需要将 Token 解析为 DOM 节点，并将 DOM 节点添加到 DOM 树中**
 
   
 
 #### JavaScript 是如何影响 DOM 生成的
 
-当HTML解析器遇到script标签时(如果该script是同步执行的)，渲染引擎判断这是一段脚本， 此时HTML解析器会暂停DOM解析，因为接下来 Javascript脚本可能会修改当前DOM结构。 这就是为什么通常要延迟执行 script脚本； 一方面会引起重绘， 一方面是为了防止DOM还未构建从而导致访问错误。
+- 当HTML解析器遇到script标签时(如果该script是同步执行的)，渲染引擎判断这是一段脚本， 此时HTML解析器会暂停DOM解析，因为接下来 Javascript脚本可能会修改当前DOM结构。 这就是为什么通常要延迟执行 script脚本； 一方面会引起重绘， 一方面是为了防止DOM还未构建从而导致访问错误。
+
+- defer 和 async 可以改变script脚本执行时机
 
 
 
@@ -355,3 +357,28 @@ window.localStorage.setItem('test', '123');
   
 
 - 标记清除法
+
+
+
+
+
+## DNS预解析
+
+DNS 服务本身是一个树状层级结构，其解析是一个递归与迭代的过程。例如 github.com 的大致解析流程如下：
+
+1. 先检查本地 hosts 文件中是否有映射，有则使用；
+2. 查找本地 DNS 缓存，有则返回；
+3. 根据配置在 TCP/IP 参数中设置 DNS 查询服务器，并向其进行查询，这里先称为本地 DNS；
+4. 如果该服务器无法解析域名（没有缓存），且不需要转发，则会向根服务器请求；
+5. 根服务器根据域名类型判断对应的顶级域名服务器（.com），返回给本地 DNS，然后重复该过程，直到找到该域名；
+6. 当然，如果设置了转发，本地 DNS 会将请求逐级转发，直到转发服务器返回或者也不能解析。
+
+更详细的介绍可以看[这篇文章](https://www.zhihu.com/question/23042131)。
+
+- 知识点
+
+  [DNS Prefetch](https://www.w3.org/TR/resource-hints/#dns-prefetch)
+
+
+
+CDN是怎么工作的？
