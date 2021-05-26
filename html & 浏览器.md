@@ -379,6 +379,10 @@ DNS 服务本身是一个树状层级结构，其解析是一个递归与迭代�
 
   [DNS Prefetch](https://www.w3.org/TR/resource-hints/#dns-prefetch)
 
+  
+
+## [描述下浏览器从输入网址到页面展现的整个过程](https://www.jianshu.com/p/d616d887953a)
+
 
 
 CDN是怎么工作的？
