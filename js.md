@@ -1099,6 +1099,12 @@ new Promise(function(resolve,reject){
 
 ## [Promise 原理](https://juejin.cn/post/6844904063570542599)
 
+#### FAQ
+
+**怎么取消一个正在等待结果的 promise **
+
+
+
 - [Promise/A+规范](https://zhuanlan.zhihu.com/p/143204897)
 
 - Promise 必须为以下三种状态之一：等待态（Pending）、执行态（Fulfilled）和拒绝态（Rejected）。一旦Promise 被 resolve 或 reject，不能再迁移至其他任何状态（即状态 immutable）。
