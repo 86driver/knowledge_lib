@@ -1,11 +1,3 @@
-## [vue数据绑定原理]
-
-- initState方法
-
-
-
-
-
 ## Vue的选项配置合并
 
 - el的合并
@@ -35,12 +27,70 @@
 
   
 
+  > 如果同时存在 extend和mixin：mixin 的生命周期比extend的生命周期先执行,  全局的先执行, 然后实例本身的生命周期最后执行
+
+  
+
 - watch选项合并
 
   对于watch选项的合并，最终和父类选项合并成数组，并且数组的选项成员，可以是回调函数，选项对象，或者函数名。
 
+  ⚠️： 父类watch先执行
+
+  示例：
+
+  ```js
+  var Parent = Vue.extend({
+    watch: {
+      'test': function() {
+        console.log('parent change')
+      }
+    }
+  })
+  var Child = Parent.extend({
+    watch: {
+      'test': {
+        handler: function() {
+          console.log('child change')
+        }
+      }
+    },
+    data() {
+      return {
+        test: 1
+      }
+    }
+  })
+  var vm = new Child().$mount('#app');
+  vm.test = 2;
+  // 输出结果
+  parent change
+  child change
+  
+  ```
+
+  
+
 - props methods inject computed合并
 
   源码的设计将`props.methods,inject,computed`归结为一类，他们的配置策略一致，简单概括就是，如果父类不存在选项，则返回子类选项，子类父类都存在时，用子类选项去覆盖父类选项。
+
+  
+
+  
+
+  ## [Vue 组件的注册](https://ustbhuangyi.github.io/vue-analysis/v2/components/component-register.html#%E5%85%A8%E5%B1%80%E6%B3%A8%E5%86%8C)
+
+  - 全局注册
+  - 局部注册
+  - 异步组件的注册
+
+  
+
+  
+
+  
+
+  ##  深入响应式原理
 
   
