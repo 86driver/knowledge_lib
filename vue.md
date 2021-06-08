@@ -313,7 +313,7 @@ export function nextTick (cb?: Function, ctx?: Object) {
 
 ###  [event](https://ustbhuangyi.github.io/vue-analysis/v2/extend/event.html#%E8%87%AA%E5%AE%9A%E4%B9%89%E4%BA%8B%E4%BB%B6)
 
-- 原声DOM事件：
+- 原生DOM事件：
 
   调用原生`addEventListener` 进行监听
 
@@ -389,8 +389,17 @@ v-mode：双向绑定，双向绑定除了数据驱动 DOM 外， DOM 的变化�
 
 ```vue
 <input v-model="message" />
-<!-- 上面的代码实际上会转换成下面的代码 -->
+<!-- 
+	v-model实际上是：
+		addProp(el, 'value', `(${value})`) 
+		addHandler(el, event, code, null, true)
+	的语法糖。
+	上面的代码实际上会转换成下面的代码,
+-->
+
 <input v-bind:value="message" v-on:input="message=$event.target.value">
+
+
 
 <!-- 
 	其实就是动态绑定了 input 的 value 指向了 messgae 变量，并且在触发 input 事件的时候去动态把 message 设置为目标值，这样实际	上就完成了数据双向绑定了，所以说 v-model 实际上就是语法糖。
@@ -429,13 +438,171 @@ let vm = new Vue({
     Child
   }
 })
+
+/** ************************************** **/
+
+/**
+ 当v-model作用在组件上时，实际上就是在组件上绑定了 props:[value]和 `@input`组件自定义事件。
+ 在组件上使用 v-model中经过了  `transformModel` 函数， 通过这个函数可以看到组件上的v-model的 value和input是可配置的，
+ 通过 options.model配置
+**/
+
+// transformModel源码方法：
+function transformModel (options, data: any) {
+  const prop = (options.model && options.model.prop) || 'value';
+  const event = (options.model && options.model.event) || 'input';
+}
 ```
 
 
 
-### slot
+### slot（插槽）
+
+插槽分为普通插槽和作用域插槽：它们有一个很大的差别是数据作用 域，普通插槽是在父组件编译和渲染阶段生成 vnodes ，所以数据的作用域是父组件实例，子组件渲 染的时候直接拿到这些渲染好的   。而对于作用域插槽，父组件在编译和渲染阶段并不会直接 生成 vnodes ，而是在父节点   的   中保留一个 scopedSlots 对象，存储着不同名称 的插槽以及它们对应的渲染函数，只有在编译和渲染子组件阶段才会执行这个渲染函数生成
+vnodes ，由于是在子组件环境执行的，所以对应的数据作用域是子组件实例。
+简单地说，两种插槽的目的都是让子组件 slot 占位符生成的内容由父组件来决定，但数据的作用域 会根据它们 vnodes 渲染时机不同而不同。
 
 ### keep-alive
+
+#### props:
+
+- include:
+
+  需要缓存的组件
+
+- exlude:
+
+  不需要缓存的组件
+
+- max:
+
+  最大缓存数量
+
+#### keep-alive生命周期
+
+第一次执行的时候跟普通的组件没什么区别， 当被缓存之后再次执行的时候 `created, mounted`等钩子函数不会触发，但是会触发 `keep-alive`独有的生命周期钩子函数**`activated`**,触发时机是组件重新被渲染的时候
+
+#### 缓存规则
+
+如果命中缓存，则直接从缓存中拿 vnode 的组件实例，并且重新调整了 key 的 顺序放在了最后一个;否则把 vnode 设置进缓存，最后还有一个逻辑，如果配置了 max 并且缓存 的⻓度超过了 this.max ，还要从缓存中删除第一个。除了从缓存中删除外，还要判断如果要删除的缓存并的组件 tag 不是当前渲染组件 tag ，也执行 删除缓存的组件实例的 $destroy 方法
+
+缓存代码：
+
+```js
+  render () {
+    const slot = this.$slots.default
+    const vnode: VNode = getFirstComponentChild(slot)
+    const componentOptions: ?VNodeComponentOptions = vnode && vnode.componentOptions
+    if (componentOptions) {
+      // check pattern
+      const name: ?string = getComponentName(componentOptions)
+      const { include, exclude } = this
+      if (
+        // not included
+        (include && (!name || !matches(include, name))) ||
+        // excluded
+        (exclude && name && matches(exclude, name))
+      ) {
+        return vnode
+      }
+      
+      
+      // 以下部分是缓存代码
+
+      const { cache, keys } = this
+      const key: ?string = vnode.key == null
+        // same constructor may get registered as different local components
+        // so cid alone is not enough (#3269)
+        ? componentOptions.Ctor.cid + (componentOptions.tag ? `::${componentOptions.tag}` : '')
+        : vnode.key
+      if (cache[key]) {
+        vnode.componentInstance = cache[key].componentInstance
+        // make current key freshest
+        remove(keys, key)
+        keys.push(key)
+      } else {
+        // delay setting the cache until update
+        this.vnodeToCache = vnode
+        this.keyToCache = key
+      }
+
+      vnode.data.keepAlive = true
+    }
+    return vnode || (slot && slot[0])
+  }
+```
+
+
+
+#### include和exclude优先级判断：
+
+```js
+if (
+  // not included
+  (include && (!name || !matches(include, name))) ||
+  // excluded
+  (exclude && name && matches(exclude, name))
+) {
+  return vnode
+}
+
+// 符合以上条件的都不缓存
+// 规则：满足了配置include且不匹配name或者是配置了 exclude 且匹配name，那么就直接返回这个组件的 vnode
+// include在前说明 include优先级高一些
+```
+
+
+
+#### keep-alive watch
+
+在keep-alive方法中使用vm.$watch手动侦听了 `include` 和 `exclude`
+
+```typescript
+watch: {
+  include (val: string | RegExp | Array<string>) {
+    pruneCache(this, name => matches(val, name))
+  },
+  exclude (val: string | RegExp | Array<string>) {
+    pruneCache(this, name => !matches(val, name))
+	} 
+}
+
+function pruneCache (keepAliveInstance: any, filter: Function) { 
+  const { cache, keys, _vnode } = keepAliveInstance
+	for (const key in cache) {
+    const cachedNode: ?VNode = cache[key]
+    if (cachedNode) {
+      // getComponentName, 获取组件 options.name
+			const name: ?string = getComponentName(cachedNode.componentOptions) 
+      if (name && !filter(name)) {
+        // pruneCacheEntry： 移除缓存
+				pruneCacheEntry(cache, key, keys, _vnode) 
+      }
+		} 
+  }
+}
+
+// 总结：
+/**
+	逻辑很简单，观测他们的变化执行 pruneCache 函数，其实就是对 cache 做遍历，发现缓存的节点 名称和新的规则没有匹配上的时候，就		把这个缓存节点从缓存中摘除
+**/
+```
+
+
+
+#### 渲染
+
+- 首次渲染
+
+  建立缓存， 其他跟普通组件一样渲染
+
+- 缓存渲染
+
+  触发 `$forceUpdate`，
+
+  执行 keep-alive自己定义的render函数， render函数执行完之后，执行 **`activated`**生命钩子函数
+
+  
 
 ### transition
 
