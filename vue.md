@@ -604,17 +604,58 @@ function pruneCache (keepAliveInstance: any, filter: Function) {
 
   
 
-### transition
+### [transition](https://juejin.cn/post/6844903858611683336)
+
+内置render函数， 只允许有一个子节点(没有同级子节点)， 这就是为什么`<transition><p>xx</p><p>xxx</p></transition>`会警告的原因，然后递归子节点， 找到第一个非抽象组件的子节点作为vnode返回
+
+`created`钩子函数只有 当节点的创建过程才会执行，而`remove`会在节点销毁的时候执行，这也就印证了
+必须要满足 v-if 、动态组件、组件根节点条件之一了。
+
+过渡动画提供了 2 个时机，一个是 create 和 activate 的时候提供了 entering 进入动画，一个是 remove 的时候提供了 leaving 离开动画，那么接下来我们就来分别去分析这两个过程。
+
+
+
+总结
+
+- Vue 的过渡实现分为以下几 个步骤:
+
+  1. 自动嗅探目标元素是否应用了 CSS 过渡或动画，如果是，在恰当的时机添加/删除 CSS 类名。
+  2. 如果过渡组件提供了 JavaScript 钩子函数，这些钩子函数将在恰当的时机被调用。
+  3. 如果没有找到 JavaScript 钩子并且也没有检测到 CSS 过渡/动画，DOM 操作 (插入/删除) 在下一帧 中立即执行。   
+
+  所以真正执行动画的是我们写的 CSS 或者是 JavaScript 钩子函数，而 Vue 的 <transition> 只是帮我 们很好地管理了这些 CSS 的添加/删除，以及钩子函数的执行时机。
+
+  
+
+  个人总结：
+
+  `	<transition></transition>` 内置组件自己实现render函数， 用途是来找到第一个非抽象组件的子节点作为vnode返回，
+
+  然后通过在节点创建(created)、节点移除阶段(remove, transition有这个钩子 - -)插入自定义钩子函数，然后通过执行对应的钩子函数和动态改变节点`class`属性来实现动画的过程
+
+  
 
 ### transition-group
 
+参考<transition></transition>,
 
+不同点：
 
+transition-group组件不是抽象组件， 即意味着该组件会渲染成一个真实元素， 通过	`move` 实现过渡动画
 
+## vue的抽象组件
 
+用法： 设置`options.abstract = true`
 
+概述：
 
+- abstract:true 表明该组件是抽象组件
+- 抽象组件没有真实的节点，在组件渲染的时候不会解析渲染成真实的dom节点，而只是作为中间的数据过度层处理
+- 组件初始化的时候父子组件会显示的建立一层关键，这层关系点顶了父子组件的通信基础
 
+功能：
+
+- 在抽象组件的生命周期中，我们可以拦截包的子组件监听的事件，或者对子组件做Dom操作，这样我们就可以封装我们需要的功能，而不用关心子组件的具体实现
 
 
 
