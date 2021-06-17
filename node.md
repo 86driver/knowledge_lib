@@ -259,11 +259,140 @@ app = require('./server.js');
 
 
 
+## [Node事件循环](https://learnku.com/articles/38802)
+
+相关文章:
+
+https://www.cnblogs.com/forcheng/p/12723854.html
+
+https://nodejs.org/en/docs/guides/event-loop-timers-and-nexttick/ (官方文档)
+
+流程图：
+
+> ​     ┌───────────────────────────┐
+> ┌>│           								 timers        								  │
+> │  └─────────────┬─────────────┘
+> │  ┌─────────────┴─────────────┐
+> │  │ 							     pending callbacks 							     │
+> │  └─────────────┬─────────────┘
+> │  ┌─────────────┴─────────────┐
+> │  │      								 idle, prepare     							    │
+> │  └─────────────┬─────────────┘      ┌───────────────┐
+> │  ┌─────────────┴─────────────┐      │  				 incoming:   				│
+> │  │       		                           	  poll            					  		│<---┤  				connections, 			   │
+> │  └─────────────┬─────────────┘      │   				data, etc. 				   │
+> │  ┌─────────────┴─────────────┐      └───────────────┘
+> │  │        								   check                                           │
+> │  └─────────────┬─────────────┘
+> │  ┌─────────────┴─────────────┐
+> └─┤     							 close callbacks                                     │
+> ​      └───────────────────────────┘
+
+### 阶段概述
+
+- **timers**： 此阶段执行由 setTimeout 和 setInterval 设置的回调
+- **pending callbacks**：执行推迟到下一个循环迭代的 `I/O` 回调。 （在poll阶段， 有些I/0不立即执行，而是延时执行，就到了这里）
+- **idle, prepare**：只在内部使用（那就忽略吧）
+- **poll**： 取出新完成的 `I/O` 事件；执行与 `I/O` 相关的回调（除了关闭回调，计时器调度的回调和 `setImmediate` 之外，几乎所有这些回调） 适当时，`node` 将在此处阻塞。
+- **check**：在这里调用 `setImmediate` 回调。
+- **close callbacks  **：一些关闭回调，例如 `socket.on('close', ...)`。
+
+在每次事件循环运行之间，Node.js 会检查它是否正在等待任何异步 `I/O` 或 `timers`，如果没有，则将其干净地关闭。
+
+⚠️：轮询阶段具有两个主要功能：
+
+计算应该阻塞并 I/O 轮询的时间
+处理轮询队列 (poll queue) 中的事件
+当事件循环进入轮询 (poll) 阶段并且没有任何计时器调度 (setTimeout, setInterval) 时，将发生以下两种情况之一：
+
+- 如果轮询队列 (poll queue) 不为空，则事件循环将遍历其回调队列，使其同步执行，直到队列用尽或达到与系统相关的硬限制为止 (到底是哪些硬限制？)。
+- 如果轮询队列为空，则会发生以下两种情况之一：
+  - 如果已通过 setImmediate 调度了脚本，则事件循环将结束轮询 poll 阶段，并继续执行 check 阶段以执行那些调度的脚本。
+  - 如果脚本并没有 setImmediate 设置回调，则事件循环将等待 poll 队列中的回调，然后立即执行它们。
+
+一旦轮询队列 (poll queue) 为空，事件循环将检查哪些计时器 timer 已经到时间。 如果一个或多个计时器 timer 准备就绪，则事件循环将返回到计时器阶段，以执行这些计时器的回调。
 
 
 
+### process.nextTick
+
+与事件循环无关， 是Node新增的一个Api, 作用是**在下一次事件循环之前执行回调**,  使用场景可以参考 vue的 $nextTick， 比如在mounted生命钩子 在nextTick中访问dom（dom已经渲染）， 所以场景可以用在 **执行环境准备完毕之后立即调用**
 
 
+
+### Node中的 `settimeout` 和 `setImmediate`
+
+`setImmediate` 和 `setTimeout` 相似，但是根据调用时间的不同，它们的行为也不同。
+
+- `setImmediate` 设计为在当前轮询 poll 阶段完成后执行脚本。
+- `setTimeout` 计划在以毫秒为单位的最小阈值过去之后运行脚本。
+
+计时器的执行顺序将根据调用它们的上下文而有所不同。 如果两者都是主模块 (main module) 中调用的，则时序将受到进程性能的限制（这可能会受到计算机上运行的其他应用程序的影响）。
+
+例如，如果我们运行以下不在 `I/O` 回调（即主模块）内的脚本，则两个计时器的执行`顺序是不确定`的，因为它受进程性能的约束
+
+```js
+// timeout_vs_immediate.js
+setTimeout(() => {
+  console.log('timeout');
+}, 0);
+
+setImmediate(() => {
+  console.log('immediate');
+});
+//////////////////////////////////////
+node timeout_vs_immediate.js
+timeout
+immediate
+
+node timeout_vs_immediate.js
+immediate
+timeout
+```
+
+但是，如果这两个调用在一个 `I/O` 回调中，那么 `immediate` 总是执行第一：
+
+```js
+// timeout_vs_immediate.js
+const fs = require('fs');
+
+fs.readFile(__filename, () => {
+  setTimeout(() => {
+    console.log('timeout');
+  }, 0);
+  setImmediate(() => {
+    console.log('immediate');
+  });
+});
+
+/////////////////////////
+$ node timeout_vs_immediate.js
+immediate
+timeout
+```
+
+**总结**
+
+与 `setTimeout` 相比，使用 `setImmediate` 的主要优点是，如果在 `I/O` 周期内 `setImmediate` 总是比任何 `timers` 快。
+
+
+
+## [cluster原理](https://www.cnblogs.com/dashnowords/p/10958457.html)
+
+> 在nuxt中， 可以通过pm2.json脚本文件开启集群
+
+
+
+##  Node 流机制
+
+### stream模块
+
+四种类型：
+
+- **Readable** - 可读操作。
+- **Writable** - 可写操作。
+- **Duplex** - 可读可写操作.
+- **Transform** - 操作被写入数据，然后读出结果。
 
 ## xx
 
