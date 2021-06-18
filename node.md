@@ -394,5 +394,31 @@ timeout
 - **Duplex** - 可读可写操作.
 - **Transform** - 操作被写入数据，然后读出结果。
 
+
+
+## [pipe原理](https://cloud.tencent.com/developer/article/1630068)
+
+
+
+## [守护进程](https://juejin.cn/post/6844903444839399438)
+
+工具
+
+- pm2（生产环境使用）
+- forever
+- nodemon(开发环境使用，有热更新功能)
+
+
+
+## [进程间通信](http://www.ayqy.net/blog/nodejs%E8%BF%9B%E7%A8%8B%E9%97%B4%E9%80%9A%E4%BF%A1/)
+
+Node有4种创建进程的方式：
+
+`spawn()`，`exec()`，`execFile()`和`fork()`
+
+
+
+## [异常处理](http://www.alloyteam.com/2013/12/node-js-series-exception-caught/)
+
 ## xx
 
