@@ -605,7 +605,7 @@
 
 - 图解
 
-  ​	![原型链图解](https://user-gold-cdn.xitu.io/2018/5/28/163a55d5d35b866d?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
+  ​	![原型链图解](https://user-gold-cdn.xitu.io/2018/5/28/163a55d5d35b866d?imageView2/0/w/1280/h/960/format/ignore-error/1)
 
 - Object.prototype.toString可以准确判断具体类型
 
@@ -1020,7 +1020,7 @@ function objectFactory() {
 
 #### 事件循环（接上面事件队列）
 
-- 被放入事件队列不会立刻执行其回调，而是等待当前执行栈中的所有任务都执行完毕， 主线程处于闲置状态时，主线程会去查找事件队列是否有任务。如果有，那么主线程会从中取出排在第一位的事件，并把这个事件对应的回调放入执行栈中，然后执行其中的同步代码...，如此反复，这样就形成了一个无限的循环。这就是这个过程被称为“事件循环（Event Loop）”的原因。
+- 被放入事件队列不会立刻执行其回调，而是等待当前执行栈中的所有任务都执行完毕， 主线程处于闲置状态时，主线程会去查找事件队列是否有任务。如果有，那么主线程会从中取出排在第一位的事件，并把这个事件对应的回调放入执行栈中，然后执行其中的同步代码，直到当前微任务队列为空，如此反复，这样就形成了一个无限的循环。这个过程被称为“事件循环（Event Loop）”。
 
 #### macro task（宏任务） 与 micro task（微任务）
 
@@ -1059,7 +1059,7 @@ new Promise(function(resolve,reject){
 
 - 以下属于微任务
 
-  1. new Promise()
+  1. Promise.resolve().then()
   2. new MutaionObserver()
 
   
@@ -1179,10 +1179,63 @@ new Promise(function(resolve,reject){
 
 ## Generator原理
 
+熟练掌握怎么使用， 知道es6的迭代器是用js代码实现的, 而不是底层实现的， 尝试简单的用 switch-case实现一个简单的迭代器,
+
+**Generator函数暂停恢复执行原理**
+
+要搞懂函数为何能暂停和恢复，那你首先要了解协程的概念。
+
+> 一个线程（或函数）执行到一半，可以暂停执行，将执行权交给另一个线程（或函数），等到稍后收回执行权的时候，再恢复执行。这种可以并行执行、交换执行权的线程（或函数），就称为协程。
+
+相关文章
+
+https://zhuanlan.zhihu.com/p/216060145
+
+https://www.cnblogs.com/pingan8787/p/13069433.html
+
 - 特性
   - 非立即执行
+  
   - run-pause-run模式，即生成器函数可以在函数运行中被暂停一次或多次，并且在后面再恢复执行，在暂停期间允许其他代码语句被执行
+  
   - 普通函数使用 return 返回值，生成器函数使用 yield 返回值
+  
+  - 迭代器之间互不干扰
+  
+    ```js
+    function* g() {
+        var o = 1;
+        yield o++;
+        yield o++;
+        yield o++;
+    
+    }
+    var gen = g();
+    
+    console.log(gen.next()); // 1
+    
+    var xxx = g();
+    
+    console.log(gen.next()); // 2
+    console.log(xxx.next()); // 1
+    console.log(gen.next()); // 3
+    ```
+  
+- yield
+
+  迭代器对象的next方法的运行逻辑如下。
+
+  （1）遇到yield语句，就暂停执行后面的操作，并将紧跟在yield后面的那个表达式的值，作为返回的对象的value属性值。
+
+  （2）下一次调用next方法时，再继续往下执行，直到遇到下一个yield语句。
+
+  （3）如果没有再遇到新的yield语句，就一直运行到函数结束，直到return语句为止，并将return语句后面的表达式的值，作为返回的对象的value属性值。
+
+  （4）如果该函数没有return语句，则返回的对象的value属性值为undefined。
+
+- next
+
+  **next方法可以有参数**
 
 
 

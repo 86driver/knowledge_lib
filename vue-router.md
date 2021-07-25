@@ -81,7 +81,7 @@
 
   - 调用 `ensureURL`  更新 url地址栏
 
-    `hash`模式通过`window.location.hash = path 或者 window.location.replace(getUrl(path))`	来个更新url
+    `hash`模式通过`window.location.hash = path 或者 window.location.replace(getUrl(path))`	来更新url
 
     `history`通过	`window.history.putState`来更新url, `pushState` 会调用浏览器原生的 history 的 pushState 接口或者 replaceState 接口，更新 浏览器的 url 地址，并把当前 url 压入历史栈中。
 
